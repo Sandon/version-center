@@ -1,4 +1,4 @@
-http://127.0.0.1:3000/diff/?oldVersion=v0.0.2&newVersion=v0.0.5
+http://127.0.0.1:3000/diff/?oldVersion=v0.0.2&newVersion=v0.0.6
 
 css文件夹
 
@@ -9,6 +9,10 @@ css文件夹
 增加了css3/
 
 增加了css3/css3.css
+
+增加了css3/css4
+
+增加了css3/css4/css4.css
 
 js文件夹
 
@@ -22,16 +26,15 @@ js文件夹
 
 修改了out.css
 
-修改了out.js
-
     [
       '- file git-test/css/css1.css',
       '+ file git-test/css/css2.css',
-      '+ dir git-test/css/css3/',
+      '+ dir git-test/css/css3',
       '+ file git-test/css/css3/css3.css',
+      '+ dir git-test/css/css3/css4',
+      '+ file git-test/css/css3/css4/css4.css',
       'm file git-test/js/js1.js',
-      '+ dir git-test/js/js3/',
+      '+ dir git-test/js/js3',
       '+ file git-test/js/js3/js3.js',
-      'm file git-test/out.css',
-      'm file git-test/out.js'
+      'm file git-test/out.css'
     ]

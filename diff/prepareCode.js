@@ -1,7 +1,7 @@
 import path from 'path'
 import fs from 'mz/fs'
-import shell from 'shelljs'
 import error from '../common/error'
+import {execCmd} from '../util/util'
 //var error = require('../common/error')
 
 var TEMP_DIR_NAME = '/temp-codes/'
@@ -30,7 +30,7 @@ export default async function prepareCode (ctx, next) {
   }
 
   ctx.gitName = gitName
-  ctx.codeDir = path.join(CODE_BASE, ctx.gitName)
+  ctx.codeDir = path.join(CODE_BASE, ctx.gitName + '_' + ctx.query.oldVersion + '-' + ctx.query.newVersion)
   ctx.newCode = path.join(ctx.codeDir, NEW_CODE_DIR_NAME)
   ctx.oldCode = path.join(ctx.codeDir, OLD_CODE_DIR_NAME)
 
@@ -95,31 +95,11 @@ async function getRepoAddr (ctx) {
  * @returns {Boolean}
  */
 async function updateVersion (ctx, path, version) {
-  if (await execCmd(ctx, 'cd ' + path + ';git checkout ' + version)) {
+  if (await execCmd(ctx, 'cd ' + path + ';git checkout master;git pull origin master;git checkout ' + version)) {
     return true
   }
 
   return false
 }
 
-/**
- * execute a command
- * @param cmd: the command to be executed
- * @returns {Promise}
- */
-function execCmd (ctx, cmd) {
-  return new Promise((resolve, reject) => {
-    console.log('exec command: ' + cmd)
-    shell.exec(cmd, function (code, stdout, stderr) {
-      stdout && console.log('Program output:', stdout);
-      stderr && console.log('Program stderr:', stderr);
-      if (0 === code) {
-        resolve(true)
-      } else {
-        reject(false)
-        error(ctx, 'inner error')
-        console.error('error when exec command: ' + cmd)
-      }
-    })
-  })
-}
+

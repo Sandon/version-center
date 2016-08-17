@@ -1,7 +1,9 @@
 import fs from 'mz/fs'
 import path from 'path'
 import error from '../common/error'
-import fileFilterRules from '../config/fileFilterRules'
+import fileFilter from './fileFilter'
+//import {fsePromise} from '../util/util'
+import fse from 'fs-extra'
 
 const DEL_ID = '-'
 const ADD_ID = '+'
@@ -92,13 +94,15 @@ async function addAndChange (ctx, oldDir, newDir, prefix) {
   }
 
   const len = files.length
-  for (let i = 0; i != len; i++) {
+  for (let i = 0; i !== len; i++) {
     let item = files[i]
-    if (fileFilter(item))
+    let tmpPathNew = path.join(newDir, item)
+    if (fileFilter(item)) {
+      await remove(ctx, tmpPathNew)
       continue
+    }
 
     let tmpPathOld = path.join(oldDir, item)
-    let tmpPathNew = path.join(newDir, item)
     let typeNew = await getType(ctx, tmpPathNew)
     let prefixNew = path.join(prefix, item)
 
@@ -109,18 +113,26 @@ async function addAndChange (ctx, oldDir, newDir, prefix) {
     if ( !await fs.exists(tmpPathOld) || await getType(ctx, tmpPathOld) !== typeNew ) {
       // new thing not exists in old
       result.push(ADD_ID + ' ' + typeNew + ' ' + prefixNew)
-      console.log(result)
-      if ('dir' == typeNew) {
+
+      if ('dir' === typeNew) {
         result = result.concat(await getAllDels(ctx, tmpPathNew, prefixNew, ADD_ID))
       }
-    } else if ('dir' == typeNew) {
+    } else if ('dir' === typeNew) {
       // new thing exists in old, and they are dir
       result = result.concat(await addAndChange(ctx, tmpPathOld, tmpPathNew, prefixNew))
     } else {
       // new thing exists in old, and they are file
       let isSame = await compareFiles(ctx, tmpPathOld, tmpPathNew)
       if (!isSame) {
+        // not same
         result.push(MODIFY_ID + ' ' + typeNew + ' ' + prefixNew)
+      } else {
+        // same, then remove it for diff zip package
+        await remove(ctx, tmpPathNew)
+          /*.then((msg))
+          .catch((e) => {
+          error(ctx, 'error when remove file: ' + tmpPathNew)
+        })*/
       }
     }
   }
@@ -135,8 +147,7 @@ async function readdir (ctx, path) {
   try {
     return await fs.readdir(path)
   } catch (e) {
-    console.error('readdir ' + path + ' error')
-    error(ctx, 'inner error')
+    error(ctx, 'readdir ' + path + ' error')
     return false
   }
 }
@@ -148,8 +159,7 @@ async function readFile (ctx, path, options) {
   try {
     return await fs.readFile(path, options)
   } catch (e) {
-    console.error('readFile ' + path + ' error')
-    error(ctx, 'inner error')
+    error(ctx, 'readFile ' + path + ' error')
     return false
   }
 }
@@ -166,8 +176,7 @@ async function getType (ctx, path) {
   try {
     stat = await fs.stat(path)
   } catch (e) {
-    console.error('get type of ' + path + ' error')
-    error(ctx, 'inner error')
+    error(ctx, 'get type of ' + path + ' error')
     return false
   }
 
@@ -177,8 +186,7 @@ async function getType (ctx, path) {
     return 'dir'
   }
 
-  console.error('type of ' + path + ' is\'t dir nor file')
-  error(ctx, 'inner error')
+  error(ctx, 'type of ' + path + ' is\'t dir nor file')
   return false
 }
 
@@ -231,31 +239,15 @@ async function compareFiles (ctx, path1, path2) {
   return file1 === file2
 }
 
-/**
- * check whether the file should be filtered
- * @param filename
- * @param path
- * @returns {boolean} true: filtered; false: not filtered
- */
-function fileFilter (filename, path) {
-  if (!filename && !path)
-    return true
-
-  if (filename) {
-    for (let rule of fileFilterRules.filenameRules) {
-      if (rule.test(filename)) {
-        return true
+function remove (ctx, path) {
+  return new Promise((resolve, reject) => {
+    fse.remove(path, function (err) {
+      console.log('rm ', path, ' complete')
+      if (err) {
+        error(ctx, 'get error when remove ' + path + '.error info: ' + err)
+        reject(false)
       }
-    }
-  }
-
-  if (path) {
-    for (let rule of fileFilterRules.pathRules) {
-      if (rule.test(path)) {
-        return true
-      }
-    }
-  }
-
-  return false
+      resolve(true)
+    })
+  })
 }

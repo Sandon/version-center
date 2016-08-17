@@ -1,5 +1,5 @@
 import Koa from 'koa'
-import diffRouter from './diff/diffRouter'
+import diffRouter from './diff/router'
 
 var app = new Koa()
 

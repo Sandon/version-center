@@ -1,9 +1,11 @@
 import Router from 'koa-router'
 import prepareCode from './prepareCode'
 import diffCode from './diffCode'
+import genRsltPkg from './genRsltPkg'
 
 var router = new Router()
-router.get('diff', '/diff/', checkParams, prepareCode, diffCode, final)
+router.get('diff', '/diff/', checkParams, prepareCode, diffCode, genRsltPkg, final)
+//router.get('diff', '/diff/', genRsltPkg, final)
 
 async function checkParams (ctx, next) {
   if (!ctx.query.oldVersion || !ctx.query.newVersion) {
