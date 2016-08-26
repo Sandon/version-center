@@ -2,7 +2,7 @@ import fs from 'mz/fs'
 import path from 'path'
 import error from '../common/error'
 import fileFilter from './fileFilter'
-//import {fsePromise} from '../util/util'
+import {remove} from '../util/util'
 import fse from 'fs-extra'
 
 const DEL_ID = '-'
@@ -10,6 +10,9 @@ const ADD_ID = '+'
 const MODIFY_ID = 'm'
 
 export default async function diffCode (ctx, next) {
+  if (ctx.error) {
+    await next()
+  }
   /*ctx.gitName = gitName
   ctx.codeDir = path.join(CODE_BASE, ctx.gitName)
   ctx.newCode = path.join(ctx.codeDir, NEW_CODE_DIR_NAME)
@@ -237,17 +240,4 @@ async function compareFiles (ctx, path1, path2) {
   let file2 = await readFile(ctx, path2, 'utf8')
 
   return file1 === file2
-}
-
-function remove (ctx, path) {
-  return new Promise((resolve, reject) => {
-    fse.remove(path, function (err) {
-      console.log('rm ', path, ' complete')
-      if (err) {
-        error(ctx, 'get error when remove ' + path + '.error info: ' + err)
-        reject(false)
-      }
-      resolve(true)
-    })
-  })
 }

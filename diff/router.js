@@ -20,34 +20,6 @@ async function checkParams (ctx, next) {
   await next()
 }
 
-/*async function getCode (ctx, next) {
-  await new Promise((resolve, reject) => {
-    console.log('get code: ' + ctx.repoAddr)
-    console.log()
-    var task = childProcess.exec('git clone ' + ctx.repoAddr + ' ' )
-    task.stdout.on('data', function (data) {
-      data = data.slice(0, data.length - 1);
-      console.log( data.toString() );
-    });
-
-    task.stderr.on('data', function (data) {
-      console.log( data.toString() );
-    });
-
-    task.on('close', function (code) {
-      if ( code !== 0 ) {
-        console.error( 'get code ' + ctx.repoAddr + ' failed, child process exited with code ' + code );
-        reject()
-      } else {
-        console.log( 'get code ' + ctx.repoAddr + ' finished' )
-        resolve()
-      }
-    });
-  })
-
-  await next()
-}*/
-
 async function final (ctx, next) {
   ctx.body = 'diff'
   ctx.status = 200

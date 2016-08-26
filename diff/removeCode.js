@@ -1,9 +1,6 @@
-import {fsePromise} from '../util/util'
+import {remove} from '../util/util'
 export default async function removeCode (ctx, next) {
-  /*let rm = fsePromise.remove(ctx.codeDir)
-    .catch(function (e) {
+  await remove(ctx.codeDir)
 
-    })
-  await rm*/
   await next()
 }

@@ -17,3 +17,4 @@
 * 再次checkout的话会报错,由于删除了.git文件造成的,需要remove掉new-code文件夹
 * 并发时的竞争
 * 缓存diff生成的增量包和描述文件
+* 没有old version只有new version

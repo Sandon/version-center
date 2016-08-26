@@ -2,7 +2,7 @@ import path from 'path'
 import fs from 'mz/fs'
 import error from '../common/error'
 import {execCmd} from '../util/util'
-//var error = require('../common/error')
+import later from './responce/later'
 
 var TEMP_DIR_NAME = '/temp-codes/'
 var CODE_BASE = path.join(__dirname, '..', TEMP_DIR_NAME)
@@ -15,45 +15,63 @@ var OLD_CODE_DIR_NAME = 'old-code'
  * @param next
  */
 export default async function prepareCode (ctx, next) {
+  if (ctx.error) {
+    await next()
+  }
+
   if (!await getRepoAddr(ctx)) {
-    error(ctx, 'inner error')
-    console.error('get repo address error')
-    return
+    ctx.error = true
+    await next()
   }
 
   var gitName = (/^.*\/(.+)\.git$/).exec(ctx.repoAddr)
   gitName && (gitName = gitName[1])
   if (!gitName) {
-    error(ctx, 'inner error')
-    console.error('git name is not valid')
-    return
+    error(ctx, 'git name is not valid')
+    ctx.error = true
+    await next()
   }
 
   ctx.gitName = gitName
-  ctx.codeDir = path.join(CODE_BASE, ctx.gitName + '_' + ctx.query.oldVersion + '-' + ctx.query.newVersion)
+  ctx.codeDirName = ctx.gitName + '_' + ctx.query.oldVersion + '-' + ctx.query.newVersion
+  ctx.codeDir = path.join(CODE_BASE, ctx.codeDirName)
   ctx.newCode = path.join(ctx.codeDir, NEW_CODE_DIR_NAME)
   ctx.oldCode = path.join(ctx.codeDir, OLD_CODE_DIR_NAME)
 
-  if (!await fs.exists(ctx.codeDir)) {
-    // code dir existing means all the code and dirs in it are ready and fine,
-    // otherwise we should prepare them
+  // code dir existing means all the code and dirs in it are ready and fine,
+  // otherwise we should prepare them
+  // if code dir exists, we should return and tell the client to retrieve it from CDN
+  try {
+    fs.statSync(ctx.codeDir)
+
+    later(ctx)
+    return
+  } catch (e) {
+    try {
+      fs.mkdirSync(ctx.codeDir)
+    } catch (e) {
+      error(ctx, 'get error when mkdir ' + ctx.codeDir)
+      ctx.error = true
+      await next()
+    }
     if ( !await prepareCodeRepo (ctx) ) {
-      return
+      ctx.error = true
+      await next()
     }
   }
 
   // update old version and new version
   if ( await updateVersion(ctx, ctx.oldCode, ctx.query.oldVersion) &&
     await updateVersion(ctx, ctx.newCode, ctx.query.newVersion) ) {
-    await next()
+  } else {
+    ctx.error = true
   }
-
+  await next()
 }
 
 /**
  * prepare code repo
  * just exec commands bellow:
- * mkdir {{ctx.codeDir}};
  * git clone {{ctx.repoAddr}} {{ctx.newCode}}
  * git clone {{ctx.repoAddr}} {{ctx.oldCode}}
  *
@@ -61,18 +79,10 @@ export default async function prepareCode (ctx, next) {
  * @returns {Boolean}
  */
 async function prepareCodeRepo (ctx) {
-  if (await execCmd(ctx, 'mkdir ' + ctx.codeDir) &&
-      await execCmd(ctx, 'git clone ' + ctx.repoAddr + ' ' + ctx.newCode) &&
+  if (await execCmd(ctx, 'git clone ' + ctx.repoAddr + ' ' + ctx.newCode) &&
       await execCmd(ctx, 'git clone ' + ctx.repoAddr + ' ' + ctx.oldCode)) {
     return true
   }
-
-  console.log('prepare code repo failed, now try to remove the dir "' +
-    ctx.codeDir + '" which was built when preparing code repo')
-  if (await execCmd(ctx, 'rm -rf ' + ctx.codeDir)) {
-    console.log('remove the dir successfully')
-  }
-  console.log('remove the dir failed, please remove it manually')
 
   return false
 }
@@ -101,5 +111,3 @@ async function updateVersion (ctx, path, version) {
 
   return false
 }
-
-
